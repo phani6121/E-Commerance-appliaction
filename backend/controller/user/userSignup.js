@@ -1,57 +1,44 @@
-const userModel = require("../../model/userModel")
-const bcrypt = require('bcrypt');
+const userModel = require("../../model/userModel");
+const { hash } = require("@node-rs/bcrypt");
 
 async function userSignupController(req, res) {
-
     try {
-        const { name, email, password } = req.body
+        const { name, email, password } = req.body;
 
-        const user = await userModel.findOne({ email })
+        if (!name) throw new Error("Please provide name");
+        if (!email) throw new Error("Please provide email");
+        if (!password) throw new Error("Please provide password");
 
-        if (user) {
-            throw new Error("Already user exits")
-        }
+        const userExists = await userModel.findOne({ email });
+        if (userExists) throw new Error("User already exists");
 
-        if (!name) {
-            throw new Error("Please provide name")
-        }
-        if (!email) {
-            throw new Error("Please provide email")
-        }
-        if (!password) {
-            throw new Error("Please provide password")
-        }
+        // hash password using node-rs bcrypt
+        const hashedPassword = await hash(password, 10);
 
-        const salt = bcrypt.genSaltSync(10);
-        const hashPassword = await bcrypt.hashSync(password, salt);
-
-        if (!hashPassword) {
-            throw new Error("Something is wrong")
-        }
+        if (!hashedPassword) throw new Error("Something is wrong");
 
         const payload = {
             ...req.body,
             role: "GENERAL",
-            password: hashPassword
-        }
+            password: hashedPassword,
+        };
 
-        const userData = new userModel(payload)
-        const saveUser = await userData.save()
+        const newUser = new userModel(payload);
+        const savedUser = await newUser.save();
 
         res.status(201).json({
-            data: saveUser,
+            data: savedUser,
             success: true,
             error: false,
-            message: "User created Successfully"
-        })
+            message: "User created Successfully",
+        });
 
     } catch (err) {
         res.json({
             message: err.message || err,
             error: true,
-            success: false
-        })
-
+            success: false,
+        });
     }
 }
 

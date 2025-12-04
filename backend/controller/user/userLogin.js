@@ -27,9 +27,11 @@ async function userLoginController(req, res) {
                 { expiresIn: "8h" }
             );
 
+            // ✅ Updated cookie options
             const tokenOption = {
                 httpOnly: true,
-                secure: true,
+                secure: process.env.NODE_ENV === "production", // only secure in production
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // recommended for modern browsers
             };
 
             res.cookie("token", token, tokenOption)
@@ -55,4 +57,3 @@ async function userLoginController(req, res) {
 }
 
 module.exports = userLoginController;
-
