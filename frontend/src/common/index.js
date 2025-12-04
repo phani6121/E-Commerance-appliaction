@@ -1,5 +1,5 @@
 
-const backendDomine = "https://e-commerance-appliaction.vercel.app/"
+const backendDomine = "http://localhost:8080"
 
 const SummaryApi = {
     singUp: {
