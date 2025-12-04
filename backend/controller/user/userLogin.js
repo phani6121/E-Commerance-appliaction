@@ -1,63 +1,58 @@
-const bcrypt = require("bcrypt")
-const userModel = require("../../model/userModel")
-const jwt = require('jsonwebtoken');
-
+const { compare } = require("@node-rs/bcrypt");
+const userModel = require("../../model/userModel");
+const jwt = require("jsonwebtoken");
 
 async function userLoginController(req, res) {
-
     try {
+        const { email, password } = req.body;
 
-        const { email, password } = req.body
+        if (!email) throw new Error("Please provide email");
+        if (!password) throw new Error("Please provide password");
 
-        if (!email) {
-            throw new Error("Please provide email")
-        }
-        if (!password) {
-            throw new Error("Please provide password")
-        }
+        const user = await userModel.findOne({ email });
+        if (!user) throw new Error("User not found");
 
-        const user = await userModel.findOne({ email })
-
-        if (!user) {
-            throw new Error("User not found")
-        }
-
-        const checkPassword = await bcrypt.compare(password, user.password)
-
-        console.log("checkPassword", checkPassword);
+        // compare password using node-rs bcrypt
+        const checkPassword = await compare(password, user.password);
 
         if (checkPassword) {
             const tokenData = {
                 _id: user._id,
                 email: user.email,
-            }
-            const token = await jwt.sign(tokenData, process.env.TOKEN_SECRET_KEY, { expiresIn: 60 * 60 * 8 });
+            };
+
+            const token = jwt.sign(
+                tokenData,
+                process.env.TOKEN_SECRET_KEY,
+                { expiresIn: "8h" }
+            );
 
             const tokenOption = {
                 httpOnly: true,
-                secure: true
-            }
+                secure: true,
+            };
 
-            res.cookie("token", token, tokenOption).status(200).json({
-                message: "Login successfully",
-                data: token,
-                success: true,
-                error: false
-            })
+            res.cookie("token", token, tokenOption)
+                .status(200)
+                .json({
+                    message: "Login successfully",
+                    data: token,
+                    success: true,
+                    error: false,
+                });
 
         } else {
-            throw new Error("Please check password")
+            throw new Error("Please check password");
         }
-
 
     } catch (err) {
         res.json({
             message: err.message || err,
             error: true,
-            success: false
-        })
+            success: false,
+        });
     }
-
 }
 
 module.exports = userLoginController;
+
