@@ -1,5 +1,8 @@
 
-const backendDomine = "http://localhost:8080"
+const backendDomine =
+  process.env.NODE_ENV === "production"
+    ? "https://e-commerance-appliaction.vercel.app"
+    : "http://localhost:8080";
 
 const SummaryApi = {
     singUp: {
