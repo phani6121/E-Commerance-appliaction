@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import productCategory from '../helper/productCategory'
 import SummaryApi from '../common'
@@ -12,7 +12,7 @@ const CategoryProduct = () => {
     const urlSearch = new URLSearchParams(location.search)
     const urlCategoryListInArray = urlSearch.getAll("category")
     const [sortBy, setSortBy] = useState("")
-
+    const isUpdatingFromUrl = useRef(false)
 
     const urlCategoryListObject = {}
     urlCategoryListInArray.forEach(el => {
@@ -20,21 +20,30 @@ const CategoryProduct = () => {
     })
 
     const [selectCategory, setSelectCategory] = useState(urlCategoryListObject)
-    const [filterCategoryList, setFilterCategoryList] = useState([])
+    // Initialize filterCategoryList from URL on mount
+    const [filterCategoryList, setFilterCategoryList] = useState(urlCategoryListInArray)
 
     const fetchData = async () => {
-        const response = await fetch(SummaryApi.filterProduct.url, {
-            method: SummaryApi.filterProduct.method,
-            headers: {
-                "content-type": "application/json"
-            },
-            body: JSON.stringify({
-                category: filterCategoryList
-            })
+        setLoading(true)
+        try {
+            const response = await fetch(SummaryApi.filterProduct.url, {
+                method: SummaryApi.filterProduct.method,
+                headers: {
+                    "content-type": "application/json"
+                },
+                body: JSON.stringify({
+                    category: filterCategoryList
+                })
 
-        })
-        const dataResponse = await response.json()
-        setData(dataResponse?.data || [])
+            })
+            const dataResponse = await response.json()
+            setData(dataResponse?.data || [])
+        } catch (error) {
+            console.error("Error fetching products:", error)
+            setData([])
+        } finally {
+            setLoading(false)
+        }
     }
     const handleSelectCategory = (e) => {
         const { name, value, checked } = e.target
@@ -46,10 +55,37 @@ const CategoryProduct = () => {
             }
         })
     }
+    // Sync state when URL changes (e.g., when clicking a category link)
+    useEffect(() => {
+        const urlSearchParams = new URLSearchParams(location.search)
+        const currentCategories = urlSearchParams.getAll("category")
+        const currentCategoryObject = {}
+        currentCategories.forEach(el => {
+            currentCategoryObject[el] = true
+        })
+        
+        // Only update if URL categories are different from current state
+        const currentStateCategories = Object.keys(selectCategory).filter(key => selectCategory[key])
+        if (JSON.stringify(currentStateCategories.sort()) !== JSON.stringify(currentCategories.sort())) {
+            isUpdatingFromUrl.current = true
+            setSelectCategory(currentCategoryObject)
+            setFilterCategoryList(currentCategories)
+            setTimeout(() => {
+                isUpdatingFromUrl.current = false
+            }, 0)
+        }
+    }, [location.search])
+
     useEffect(() => {
         fetchData()
     }, [filterCategoryList])
+
     useEffect(() => {
+        // Skip navigation if we're updating from URL to avoid loops
+        if (isUpdatingFromUrl.current) {
+            return
+        }
+
         const arrayOfCategory = Object.keys(selectCategory).map(categoryKeyName => {
             if (selectCategory[categoryKeyName]) {
                 return categoryKeyName
@@ -64,9 +100,13 @@ const CategoryProduct = () => {
             if ((arrayOfCategory.length - 1) === index) {
                 return `category=${el}`
             }
-            return `category=${el}&&`
+            return `category=${el}&`
         })
-        navigate("/category-product?" + urlFormat.join(""))
+        const newUrl = "/category-product?" + urlFormat.join("")
+        // Only navigate if URL is different to avoid infinite loops
+        if (location.pathname + location.search !== newUrl) {
+            navigate(newUrl)
+        }
     }, [selectCategory])
 
     const handleOnChangeSortBy = (e) => {
