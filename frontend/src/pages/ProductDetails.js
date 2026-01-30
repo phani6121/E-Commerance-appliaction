@@ -34,7 +34,7 @@ const ProductDetails = () => {
 
     const params = useParams()
 
-    const fetchProductDetails = async () => {
+    const fetchProductDetails = useCallback(async () => {
 
         setLoading(true)
 
@@ -56,13 +56,13 @@ const ProductDetails = () => {
 
         setActiveImage(dataResponse?.data?.productImage[0])
 
-    }
+    }, [params?.id])
 
     //console.log("data", data);
 
     useEffect(() => {
         fetchProductDetails()
-    }, [params]);
+    }, [fetchProductDetails]);
 
     const handleMouseEnterProduct = (imageURL) => {
         setActiveImage(imageURL)
@@ -80,7 +80,7 @@ const ProductDetails = () => {
             x,
             y
         })
-    }, [zoomImageCoordinate])
+    }, [])
 
     const handleLeaveImageZoom = () => {
         setZoomImage(false)
@@ -103,9 +103,15 @@ const ProductDetails = () => {
         <div className='container mx-auto p-4'>
             <div className='min-h-[200px] flex flex-col lg:flex-row gap-4'>
                 {/* Product Image */}
-                <div className='h-96 flex flex-col lg:flex-row-reverse gap-4 '>
+                    <div className='h-96 flex flex-col lg:flex-row-reverse gap-4 '>
                     <div className='h-[300px] w-[300px] lg:h-96 lg:w-96 bg-slate-200 relative p-2'>
-                        <img src={activeImage} className='h-full w-full object-scale-down mix-blend-multiply ' onMouseMove={handleZoomImage} onMouseLeave={handleLeaveImageZoom} />
+                        <img
+                            src={activeImage}
+                            alt={data?.productName || 'Product image'}
+                            className='h-full w-full object-scale-down mix-blend-multiply '
+                            onMouseMove={handleZoomImage}
+                            onMouseLeave={handleLeaveImageZoom}
+                        />
                         {/**product zoom */}
                         {
                             zoomImage && (
@@ -147,7 +153,13 @@ const ProductDetails = () => {
                                         data?.productImage?.map((imageURL, index) => {
                                             return (
                                                 <div className='h-20 w-20 bg-slate-200 rounded p-1 cursor-pointer' key={imageURL}>
-                                                    <img src={imageURL} className='w-full h-full object-scale-down mix-blend-multiply' onMouseEnter={() => handleMouseEnterProduct(imageURL)} onClick={() => handleMouseEnterProduct(imageURL)} />
+                                                    <img
+                                                        src={imageURL}
+                                                        alt={data?.productName || 'Product thumbnail'}
+                                                        className='w-full h-full object-scale-down mix-blend-multiply'
+                                                        onMouseEnter={() => handleMouseEnterProduct(imageURL)}
+                                                        onClick={() => handleMouseEnterProduct(imageURL)}
+                                                    />
                                                 </div>
                                             )
 
@@ -166,7 +178,7 @@ const ProductDetails = () => {
                     loading ? (
                         <div className=' grid w-full gap-1'>
                             <p className=' bg-slate-200 animate-pulse h-6 lg:h-8 w-full rounded-full inline-block '></p>
-                            <h2 className='text-2xl lg:text-4xl font-medium h-6 lg:h-8 bg-slate-200 animate-pulse w-full rounded-full'></h2>
+                            <div className='text-2xl lg:text-4xl font-medium h-6 lg:h-8 bg-slate-200 animate-pulse w-full rounded-full' aria-hidden="true"></div>
                             <p className='capitalize rounded-full text-slate-400 bg-slate-200 min-w-[100px] w-full animate-pulse h-6 lg:h-8 '></p>
                             <div className='text-red-600 flex items-center gap-1 h-6 lg:h-8 bg-slate-200 animate-pulse rounded-full w-full'>
 
